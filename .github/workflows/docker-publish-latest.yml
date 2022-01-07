@@ -1,0 +1,52 @@
+name: Docker
+
+on:
+  push:
+    # Publish `main` as Docker `latest` image.
+    branches:
+      - main
+
+env:
+  IMAGE_NAME: gitlab-runner-machine-proxmox-ve
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@a40b8845c0683271d9f53dfcb887a7e181d3918b # renovate: tag=0.9.1
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579 # renovate: tag=v2
+
+      - name: Identify version to build
+        run: |
+          egrep "^ARG DOCKER_MACHINE_DRIVER_PROXMOX_VE_VERSION=" Dockerfile | sed "s|^ARG ||" >> $GITHUB_ENV
+          echo "GITLAB_RUNNER_VERSION=$(egrep "^FROM gitlab/gitlab-runner:" Dockerfile | awk '{print $2}' | cut -d: -f2 | cut -d@ -f1)" >> $GITHUB_ENV
+
+      - name: Build image
+        run: docker build . --file Dockerfile --tag "$IMAGE_NAME" --cache-from "ghcr.io/${{ github.repository }}/$IMAGE_NAME:latest"
+
+      - name: Log into registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Push image
+        run: |
+          IMAGE_ID="ghcr.io/${{ github.repository }}/$IMAGE_NAME"
+
+          # Change all uppercase to lowercase
+          IMAGE_ID="$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')"
+
+          IMAGE_ID_VERSIONED="${IMAGE_ID}:${GITLAB_RUNNER_VERSION}-machine-proxmox-ve-${DOCKER_MACHINE_DRIVER_PROXMOX_VE_VERSION}"
+
+          # Use Docker `latest` tag convention
+          echo IMAGE_ID="$IMAGE_ID"
+          echo IMAGE_ID_VERSIONED="$IMAGE_ID_VERSIONED"
+
+          docker tag "$IMAGE_NAME" "$IMAGE_ID_VERSIONED"
+          docker tag "$IMAGE_NAME" "$IMAGE_ID:latest"
+          docker push "$IMAGE_ID_VERSIONED"
+          docker push "$IMAGE_ID:latest"
