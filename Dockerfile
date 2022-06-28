@@ -1,7 +1,7 @@
 # renovate: datasource=github-releases depName=Nothing4You/docker-machine-driver-proxmox-ve
 ARG DOCKER_MACHINE_DRIVER_PROXMOX_VE_VERSION=v4.0.1
 
-FROM alpine/git:v2.34.2@sha256:92183be577e91c664e01b0318b6cc10ba82ac28db40ed8934e389f42ff3656ea AS builder-git
+FROM alpine/git:v2.36.1@sha256:3c4fe48ce2a0393efe8e8b3f23e7bbd99212478a1c86a43d9bfba713bb90fc65 AS builder-git
 
 ARG BUILD_USER_UID=76543
 ARG BUILD_USER_GID=76543 
